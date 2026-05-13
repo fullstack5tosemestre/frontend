@@ -1,3 +1,3 @@
-export default function BranchesPage() {
-  return <div className="p-4"><h4>Sucursales — próximamente</h4></div>;
-}
+import { useEffect, useState } from "react";
+import type { Branch } from "../types";
+import { getBranches, createBranc
