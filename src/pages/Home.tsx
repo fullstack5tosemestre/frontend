@@ -181,22 +181,22 @@ export default function Home() {
                             {[
                                 {
                                     name: "api-inventario",
-                                    port: "8081",
+                                    endpoint: "/products",
                                     desc: "Productos, sucursales y bodegas",
                                 },
                                 {
                                     name: "api-pedidos",
-                                    port: "8081",
+                                    endpoint: "/orders",
                                     desc: "Gestión de órdenes",
                                 },
                                 {
                                     name: "api-usuarios",
-                                    port: "8082",
+                                    endpoint: "/users",
                                     desc: "Usuarios y roles",
                                 },
                                 {
                                     name: "api-gateway",
-                                    port: "80",
+                                    endpoint: "/",
                                     desc: "Punto de entrada único (proxy)",
                                 },
                             ].map((svc, i, arr) => (
@@ -209,12 +209,14 @@ export default function Home() {
                                     }`}
                                 >
                                     <div>
-                                        <span className="fw-semibold small">
+                                        <a
+                                            className="fw-semibold small text-decoration-none"
+                                            href={`${API}${svc.endpoint}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                        >
                                             {svc.name}
-                                        </span>
-                                        <span className="text-muted small ms-2">
-                                            :{svc.port}
-                                        </span>
+                                        </a>
                                         <p
                                             className="mb-0 text-muted"
                                             style={{ fontSize: "0.75rem" }}
