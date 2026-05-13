@@ -1,185 +1,191 @@
 @import "bootstrap";
-@import "bootstrap-icons/font/bootstrap-icons.css";
 
 /* ─── Root / theme ─────────────────────────────────────────── */
 :root {
-  --sl-blue: #0d6efd;
-  --sl-blue-light: #e8f0fe;
-  --sl-sidebar-bg: #1e2a3b;
-  --sl-sidebar-text: #c9d3e0;
-  --sl-sidebar-hover: rgba(255, 255, 255, 0.07);
-  --sl-sidebar-active: #0d6efd;
-  --sl-sidebar-width: 230px;
-  --sl-main-bg: #f4f6f9;
-  --bs-border-radius: 0.5rem;
-  --bs-btn-border-radius: 0.5rem;
+    --sl-blue: #0d6efd;
+    --sl-blue-light: #e8f0fe;
+    --sl-sidebar-bg: #1e2a3b;
+    --sl-sidebar-text: #c9d3e0;
+    --sl-sidebar-hover: rgba(255, 255, 255, 0.07);
+    --sl-sidebar-active: #0d6efd;
+    --sl-sidebar-width: 230px;
+    --sl-main-bg: #f4f6f9;
+    --bs-border-radius: 0.5rem;
+    --bs-btn-border-radius: 0.5rem;
 }
 
 /* ─── Base ──────────────────────────────────────────────────── */
-html, body, #root {
-  height: 100%;
-  background-color: var(--sl-main-bg);
-  font-family: "Segoe UI", system-ui, sans-serif;
+html,
+body,
+#root {
+    height: 100%;
+    background-color: var(--sl-main-bg);
+    font-family: "Segoe UI", system-ui, sans-serif;
 }
 
 /* ─── Buttons — rounded corners everywhere ──────────────────── */
 .btn {
-  border-radius: 0.5rem !important;
+    border-radius: 0.5rem !important;
 }
 
 /* ─── App shell ─────────────────────────────────────────────── */
 .app-shell {
-  min-height: 100vh;
+    min-height: 100vh;
 }
 
 /* ─── Sidebar ───────────────────────────────────────────────── */
 .sidebar {
-  width: var(--sl-sidebar-width);
-  min-width: var(--sl-sidebar-width);
-  background-color: var(--sl-sidebar-bg);
-  color: var(--sl-sidebar-text);
-  min-height: 100vh;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow-y: auto;
+    width: var(--sl-sidebar-width);
+    min-width: var(--sl-sidebar-width);
+    background-color: var(--sl-sidebar-bg);
+    color: var(--sl-sidebar-text);
+    min-height: 100vh;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
 }
 
 .sidebar-brand {
-  color: #fff;
-  font-size: 1rem;
+    color: #fff;
+    font-size: 1rem;
 }
 
 .sidebar-divider {
-  border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
 .sidebar-section-label {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #7a8ea6;
-  font-weight: 600;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #7a8ea6;
+    font-weight: 600;
 }
 
 .sidebar-link {
-  color: var(--sl-sidebar-text);
-  font-size: 0.875rem;
-  transition: background 0.15s, color 0.15s;
+    color: var(--sl-sidebar-text);
+    font-size: 0.875rem;
+    transition:
+        background 0.15s,
+        color 0.15s;
 }
 
 .sidebar-link:hover {
-  background-color: var(--sl-sidebar-hover);
-  color: #fff;
+    background-color: var(--sl-sidebar-hover);
+    color: #fff;
 }
 
 .sidebar-link-active {
-  background-color: var(--sl-blue) !important;
-  color: #fff !important;
+    background-color: var(--sl-blue) !important;
+    color: #fff !important;
 }
 
 .sidebar-footer {
-  font-size: 0.75rem;
-  color: #7a8ea6;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+    font-size: 0.75rem;
+    color: #7a8ea6;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 /* ─── Main content ──────────────────────────────────────────── */
 .main-content {
-  background-color: var(--sl-main-bg);
-  min-height: 100vh;
+    background-color: var(--sl-main-bg);
+    min-height: 100vh;
 }
 
 /* ─── Cards ─────────────────────────────────────────────────── */
 .card {
-  border-radius: 0.75rem !important;
+    border-radius: 0.75rem !important;
 }
 
 .stat-card {
-  transition: transform 0.15s, box-shadow 0.15s;
-  cursor: default;
+    transition:
+        transform 0.15s,
+        box-shadow 0.15s;
+    cursor: default;
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08) !important;
 }
 
 /* ─── Tables ─────────────────────────────────────────────────── */
 .table {
-  font-size: 0.875rem;
+    font-size: 0.875rem;
 }
 
 .table th {
-  background-color: #f8f9fa;
-  font-weight: 600;
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #6c757d;
+    background-color: #f8f9fa;
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6c757d;
 }
 
 /* ─── Modal ──────────────────────────────────────────────────── */
 .modal-content {
-  border-radius: 0.75rem !important;
-  border: none;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    border-radius: 0.75rem !important;
+    border: none;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
 }
 
 .modal-header {
-  border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid #e9ecef;
 }
 
 /* ─── Form controls ──────────────────────────────────────────── */
-.form-control, .form-select {
-  border-radius: 0.5rem !important;
+.form-control,
+.form-select {
+    border-radius: 0.5rem !important;
 }
 
 /* ─── Page header ─────────────────────────────────────────────── */
 .page-header {
-  margin-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
 }
 
 .page-header h3 {
-  font-weight: 700;
-  color: #1e2a3b;
+    font-weight: 700;
+    color: #1e2a3b;
 }
 
 /* ─── Badge tweaks ────────────────────────────────────────────── */
 .badge {
-  font-weight: 500;
-  letter-spacing: 0.02em;
+    font-weight: 500;
+    letter-spacing: 0.02em;
 }
 
 /* ─── Scrollbar (sidebar) ─────────────────────────────────────── */
 .sidebar::-webkit-scrollbar {
-  width: 4px;
+    width: 4px;
 }
 .sidebar::-webkit-scrollbar-track {
-  background: transparent;
+    background: transparent;
 }
 .sidebar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 4px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
 }
 
 /* ─── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .sidebar {
-    width: 60px;
-    min-width: 60px;
-  }
-  .sidebar-section-label,
-  .sidebar-link span,
-  .sidebar-brand span,
-  .sidebar-footer {
-    display: none;
-  }
-  .sidebar-link {
-    justify-content: center;
-    padding: 0.6rem !important;
-  }
-  .sidebar-brand {
-    justify-content: center;
-  }
+    .sidebar {
+        width: 60px;
+        min-width: 60px;
+    }
+    .sidebar-section-label,
+    .sidebar-link span,
+    .sidebar-brand span,
+    .sidebar-footer {
+        display: none;
+    }
+    .sidebar-link {
+        justify-content: center;
+        padding: 0.6rem !important;
+    }
+    .sidebar-brand {
+        justify-content: center;
+    }
 }
