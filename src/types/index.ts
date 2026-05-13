@@ -17,12 +17,24 @@ export interface Warehouse {
     inBranch?: BranchRef;
 }
 
+export interface WarehouseInput {
+    name: string;
+    inBranch?: { id: number };
+}
+
 export interface Product {
     id: number;
     name: string;
     sku: string;
     stock: number;
     inWarehouse?: Warehouse;
+}
+
+export interface ProductInput {
+    name: string;
+    sku: string;
+    stock: number;
+    inWarehouse?: { id: number };
 }
 
 // ── Pedidos ──────────────────────────────────────────────────
