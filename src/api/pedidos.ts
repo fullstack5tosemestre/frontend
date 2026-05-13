@@ -1,77 +1,112 @@
 import { API } from "./config";
 import type { Order, OrderItem, OrderStatus } from "../types";
 
+// ── Tipos internos alineados al schema pedidos.json ──────────────────────
+
+interface ProductQuantity {
+    productId: number;
+    quantity: number;
+}
+
+interface OrderCreatePayload {
+    customerName: string;
+    status: string;
+    productList: ProductQuantity[];
+}
+
+interface OrderProductDTO {
+    productId: number;
+    quantity: number;
+    product?: {
+        id: number;
+        name?: string;
+        sku?: string;
+        stock?: number;
+    };
+}
+
 interface OrderResponseDTO {
     id: number;
     customerName?: string;
-    status: OrderStatus;
+    status: string;
     createdAt?: string;
-    productList?: Array<{ productId: number; quantity: number }>;
+    productList?: OrderProductDTO[];
 }
 
-interface OrderCreateDTO {
-    customerName: string;
-    status: OrderStatus;
-    productList: Array<{ productId: number; quantity: number }>;
-}
+// ── Helpers ───────────────────────────────────────────────────────────────
 
-const mapOrderResponse = (data: OrderResponseDTO): Order => ({
-    id: data.id,
-    customerName: data.customerName,
-    status: data.status,
-    createdAt: data.createdAt,
-    items: data.productList?.map((item) => ({
-        productId: item.productId,
-        quantity: item.quantity,
-    })),
+const mapOrder = (d: OrderResponseDTO): Order => ({
+    id: d.id,
+    customerName: d.customerName,
+    status: d.status as OrderStatus,
+    createdAt: d.createdAt,
+    items: d.productList?.map(i => ({ productId: i.productId, quantity: i.quantity })),
 });
 
-const mapOrderList = (data: OrderResponseDTO[]): Order[] =>
-    data.map(mapOrderResponse);
+/** Lanza un error con el mensaje del backend si la respuesta no es OK */
+const checkOk = async (r: Response): Promise<Response> => {
+    if (r.ok) return r;
+    let msg = `Error ${r.status}`;
+    try {
+        const body = await r.json();
+        msg = body?.message ?? body?.error ?? JSON.stringify(body) ?? msg;
+    } catch {
+        try { msg = await r.text(); } catch { /* ignore */ }
+    }
+    throw new Error(msg);
+};
 
-const toCreatePayload = (data: {
-    customerName: string;
-    status: OrderStatus;
-    items: OrderItem[];
-}): OrderCreateDTO => ({
-    customerName: data.customerName,
-    status: data.status,
-    productList: data.items.map((item) => ({
-        productId: item.productId,
-        quantity: item.quantity,
-    })),
-});
+// ── Endpoints ─────────────────────────────────────────────────────────────
 
 export const getOrders = (): Promise<Order[]> =>
     fetch(`${API}/orders`)
-        .then((r) => r.json())
-        .then(mapOrderList);
+        .then(checkOk)
+        .then(r => r.json())
+        .then((data: OrderResponseDTO[]) =>
+            Array.isArray(data) ? data.map(mapOrder) : []
+        );
 
 export const getOrder = (id: number): Promise<Order> =>
     fetch(`${API}/orders/${id}`)
-        .then((r) => r.json())
-        .then(mapOrderResponse);
+        .then(checkOk)
+        .then(r => r.json())
+        .then(mapOrder);
 
 export const createOrder = (data: {
     customerName: string;
     status: OrderStatus;
     items: OrderItem[];
-}): Promise<Order> =>
-    fetch(`${API}/orders`, {
+}): Promise<Order> => {
+    // Payload exacto según schema pedidos.json → Order / ProductQuantity
+    const payload: OrderCreatePayload = {
+        customerName: data.customerName,
+        status: data.status,
+        productList: data.items.map(i => ({
+            productId: i.productId,
+            quantity: i.quantity,
+        })),
+    };
+
+    console.log("[createOrder] payload →", JSON.stringify(payload, null, 2));
+
+    return fetch(`${API}/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(toCreatePayload(data)),
+        body: JSON.stringify(payload),
     })
-        .then((r) => r.json())
-        .then((response) => mapOrderResponse(response as OrderResponseDTO));
+        .then(checkOk)
+        .then(r => r.json())
+        .then(mapOrder);
+};
 
-export const updateOrderStatus = (
-    id: number,
-    status: OrderStatus,
-): Promise<void> =>
+export const updateOrderStatus = (id: number, status: OrderStatus): Promise<void> =>
     fetch(`${API}/orders/${id}/status?status=${encodeURIComponent(status)}`, {
         method: "PATCH",
-    }).then(() => undefined);
+    })
+        .then(checkOk)
+        .then(() => undefined);
 
 export const deleteOrder = (id: number): Promise<void> =>
-    fetch(`${API}/orders/${id}`, { method: "DELETE" }).then(() => undefined);
+    fetch(`${API}/orders/${id}`, { method: "DELETE" })
+        .then(checkOk)
+        .then(() => undefined);

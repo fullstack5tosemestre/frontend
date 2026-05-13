@@ -89,7 +89,7 @@ export default function OrdersPage() {
       }
       setShowModal(false);
       loadOrders();
-    } catch { setError("Error al guardar la orden"); } finally { setSaving(false); }
+    } catch (e: any) { setError(e?.message ?? "Error al guardar la orden"); } finally { setSaving(false); }
   };
 
   const handleDelete = async () => {
