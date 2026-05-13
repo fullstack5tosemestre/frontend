@@ -32,7 +32,7 @@ jobs:
 
       - name: Build Frontend Docker Image
         run: |
-          docker build --build-arg VITE_API_URL=${{ secrets.VITE_API_URL }} -t frontend .
+          docker build --build-arg VITE_API_URL=${{ secrets.EC2_API_GATEWAY_PUBLIC_IP }} -t frontend .
           docker tag frontend:latest ${{ secrets.ECR_REPO_URL_FRONTEND }}:latest
 
       - name: Push Frontend Image to ECR
