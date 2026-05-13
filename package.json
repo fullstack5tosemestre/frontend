@@ -1,6 +1,5 @@
 {
     "name": "frontend",
-    "homepage": "https://fullstack5tosemestre.github.io/frontend/",
     "private": true,
     "version": "0.0.0",
     "type": "module",

@@ -1,54 +1,59 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+name: Frontend Deploy
 
 on:
-  # Runs on pushes targeting the default branch
   push:
-    branches: ["main"]
+    branches:
+      - main
+    paths:
+      - "Dockerfile"
+      - "src/**"
 
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-    # Sets the GITHUB_TOKEN permissions to allow deployment to GitHub Pages
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-# Allow one concurrent deployment
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
-
 jobs:
-  # Single deploy job since we're just deploying
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-      - name: Set up Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: lts/*
-          cache: "npm"
-      - name: Install dependencies
-        run: npm ci
-      - name: Build
-        run: npm run build
-        env:
-          VITE_API_URL: http://${{ secrets.EC2_API_GATEWAY_PUBLIC_IP }}
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v6
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          # Upload dist folder
-          path: "./dist"
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Frontend Docker Image
+        run: |
+          docker build --build-arg VITE_API_URL=${{ secrets.VITE_API_URL }} -t frontend .
+          docker tag frontend:latest ${{ secrets.ECR_REPO_URL_FRONTEND }}:latest
+
+      - name: Push Frontend Image to ECR
+        run: |
+          docker push ${{ secrets.ECR_REPO_URL_FRONTEND }}:latest
+
+      - name: Create SSH Key
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
+          chmod 400 key.pem
+
+      - name: Deploy Frontend to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no \
+          -i key.pem \
+          ec2-user@${{ secrets.EC2_FRONTEND_PUBLIC_IP }} \
+          'aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 089485767547.dkr.ecr.us-east-1.amazonaws.com && \
+          docker pull ${{ secrets.ECR_REPO_URL_FRONTEND }}:latest && \
+          docker rm -f frontend || true && \
+          docker run -d \
+          -p 80:80 \
+          --name frontend \
+          --restart unless-stopped \
+          ${{ secrets.ECR_REPO_URL_FRONTEND }}:latest'
