@@ -1,412 +1,129 @@
 import { useEffect, useState } from "react";
-import type { Product } from "../types";
-import {
-    getProducts,
-    createProduct,
-    updateProduct,
-    deleteProduct,
-} from "../api/inventario";
+import type { Product, Warehouse } from "../types";
+import { getProducts, createProduct, updateProduct, deleteProduct, getWarehouses } from "../api/inventario";
 
-interface ProductForm {
-    name: string;
-    sku: string;
-    stock: number;
-    warehouseId?: number;
-}
-
-const emptyProduct: ProductForm = {
-    name: "",
-    sku: "",
-    stock: 0,
-    warehouseId: undefined,
-};
+interface ProductForm { name: string; sku: string; stock: number; inWarehouse?: { id: number }; }
+const empty: ProductForm = { name: "", sku: "", stock: 0, inWarehouse: undefined };
 
 export default function ProductsPage() {
-    const [products, setProducts] = useState<Product[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-    const [form, setForm] = useState<ProductForm>(emptyProduct);
-    const [editId, setEditId] = useState<number | null>(null);
-    const [showModal, setShowModal] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
-    const [search, setSearch] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState<ProductForm>(empty);
+  const [editId, setEditId] = useState<number|null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Product|null>(null);
+  const [search, setSearch] = useState("");
 
-    const load = (withLoading = true) => {
-        if (withLoading) setLoading(true);
-        getProducts()
-            .then(setProducts)
-            .catch(() => setError("No se pudo cargar los productos"))
-            .finally(() => setLoading(false));
-    };
+  const load = () => {
+    setLoading(true);
+    Promise.all([getProducts(), getWarehouses()])
+      .then(([p, w]) => { setProducts(p); setWarehouses(w); })
+      .catch(() => setError("No se pudo cargar los datos"))
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => { load(); }, []);
 
-    useEffect(() => {
-        const timer = setTimeout(() => load(true), 0);
-        return () => clearTimeout(timer);
-    }, []);
+  const openCreate = () => { setForm(empty); setEditId(null); setShowModal(true); };
+  const openEdit = (p: Product) => {
+    setForm({ name: p.name, sku: p.sku, stock: p.stock, inWarehouse: p.inWarehouse ? { id: p.inWarehouse.id } : undefined });
+    setEditId(p.id); setShowModal(true);
+  };
 
-    const openCreate = () => {
-        setForm(emptyProduct);
-        setEditId(null);
-        setShowModal(true);
-    };
-    const openEdit = (p: Product) => {
-        setForm({
-            name: p.name,
-            sku: p.sku,
-            stock: p.stock,
-            warehouseId: p.inWarehouse?.id,
-        });
-        setEditId(p.id);
-        setShowModal(true);
-    };
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const payload = { ...form, inWarehouse: form.inWarehouse?.id ? { id: form.inWarehouse.id } : undefined };
+      editId !== null ? await updateProduct(editId, payload as any) : await createProduct(payload as any);
+      setShowModal(false); load();
+    } catch { setError("Error al guardar"); } finally { setSaving(false); }
+  };
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try { await deleteProduct(deleteTarget.id); setDeleteTarget(null); load(); }
+    catch { setError("Error al eliminar"); }
+  };
 
-    const handleSave = async () => {
-        setSaving(true);
-        try {
-            const payload = {
-                name: form.name,
-                sku: form.sku,
-                stock: form.stock,
-                inWarehouse: form.warehouseId
-                    ? { id: form.warehouseId }
-                    : undefined,
-            };
-            if (editId !== null) {
-                await updateProduct(editId, payload);
-            } else {
-                await createProduct(payload);
-            }
-            setShowModal(false);
-            load(true);
-        } catch {
-            setError("Error al guardar el producto");
-        } finally {
-            setSaving(false);
-        }
-    };
+  const filtered = products.filter(p =>
+    p.name.toLowerCase().includes(search.toLowerCase()) ||
+    p.sku.toLowerCase().includes(search.toLowerCase())
+  );
+  const stockBadge = (s: number) =>
+    s === 0 ? <span className="badge bg-danger-subtle text-danger rounded-pill">Sin stock</span>
+    : s < 10 ? <span className="badge bg-warning-subtle text-warning rounded-pill">Bajo ({s})</span>
+    : <span className="badge bg-success-subtle text-success rounded-pill">{s} uds</span>;
 
-    const handleDelete = async () => {
-        if (!deleteTarget) return;
-        try {
-            await deleteProduct(deleteTarget.id);
-            setDeleteTarget(null);
-            load(true);
-        } catch {
-            setError("Error al eliminar el producto");
-        }
-    };
-
-    const filtered = products.filter(
-        (p) =>
-            p.name.toLowerCase().includes(search.toLowerCase()) ||
-            p.sku.toLowerCase().includes(search.toLowerCase()),
-    );
-
-    const stockBadge = (stock: number) => {
-        if (stock === 0)
-            return (
-                <span className="badge bg-danger-subtle text-danger rounded-pill">
-                    Sin stock
-                </span>
-            );
-        if (stock < 10)
-            return (
-                <span className="badge bg-warning-subtle text-warning rounded-pill">
-                    Bajo ({stock})
-                </span>
-            );
-        return (
-            <span className="badge bg-success-subtle text-success rounded-pill">
-                {stock} unidades
-            </span>
-        );
-    };
-
-    const warehouseLabel = (p: Product) =>
-        p.inWarehouse?.name ??
-        (p.inWarehouse?.id ? `#${p.inWarehouse.id}` : "–");
-
-    return (
-        <div>
-            <div className="d-flex align-items-center justify-content-between mb-4">
-                <div>
-                    <h3 className="fw-bold mb-0 text-dark">Productos</h3>
-                    <p className="text-muted mb-0 small">
-                        Catálogo de productos del inventario
-                    </p>
-                </div>
-                <button
-                    className="btn btn-primary d-flex align-items-center gap-2"
-                    onClick={openCreate}
-                >
-                    <i className="bi bi-plus-lg"></i> Nuevo producto
-                </button>
-            </div>
-
-            {error && (
-                <div className="alert alert-danger alert-dismissible">
-                    <span>{error}</span>
-                    <button
-                        className="btn-close"
-                        onClick={() => setError("")}
-                    />
-                </div>
-            )}
-
-            <div className="card border-0 shadow-sm mb-3">
-                <div className="card-body py-2">
-                    <div className="input-group">
-                        <span className="input-group-text bg-white border-end-0">
-                            <i className="bi bi-search text-muted"></i>
-                        </span>
-                        <input
-                            type="text"
-                            className="form-control border-start-0 ps-0"
-                            placeholder="Buscar por nombre o SKU..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
-                    </div>
-                </div>
-            </div>
-
-            <div className="card border-0 shadow-sm">
-                <div className="card-body p-0">
-                    {loading ? (
-                        <div className="text-center py-5">
-                            <div className="spinner-border text-primary" />
-                        </div>
-                    ) : filtered.length === 0 ? (
-                        <div className="text-center py-5 text-muted">
-                            <i className="bi bi-box-seam fs-1 d-block mb-2"></i>
-                            {search
-                                ? "Sin resultados para tu búsqueda"
-                                : "No hay productos registrados"}
-                        </div>
-                    ) : (
-                        <div className="table-responsive">
-                            <table className="table table-hover mb-0 align-middle">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Nombre</th>
-                                        <th>SKU</th>
-                                        <th>Stock</th>
-                                        <th>Bodega</th>
-                                        <th className="text-end">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filtered.map((p) => (
-                                        <tr key={p.id}>
-                                            <td className="text-muted small">
-                                                {p.id}
-                                            </td>
-                                            <td>
-                                                <div className="fw-semibold">
-                                                    {p.name}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <code className="bg-light px-2 py-1 rounded small">
-                                                    {p.sku}
-                                                </code>
-                                            </td>
-                                            <td>{stockBadge(p.stock)}</td>
-                                            <td className="text-muted small">
-                                                {warehouseLabel(p)}
-                                            </td>
-                                            <td className="text-end">
-                                                <button
-                                                    className="btn btn-sm btn-outline-primary me-2"
-                                                    onClick={() => openEdit(p)}
-                                                >
-                                                    <i className="bi bi-pencil"></i>
-                                                </button>
-                                                <button
-                                                    className="btn btn-sm btn-outline-danger"
-                                                    onClick={() =>
-                                                        setDeleteTarget(p)
-                                                    }
-                                                >
-                                                    <i className="bi bi-trash"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </div>
-                {!loading && filtered.length > 0 && (
-                    <div className="card-footer bg-white border-top text-muted small py-2 px-3">
-                        {filtered.length} producto
-                        {filtered.length !== 1 ? "s" : ""} encontrado
-                        {filtered.length !== 1 ? "s" : ""}
-                    </div>
-                )}
-            </div>
-
-            {showModal && (
-                <div
-                    className="modal show d-block"
-                    style={{ background: "rgba(0,0,0,0.4)" }}
-                >
-                    <div className="modal-dialog modal-dialog-centered">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title fw-semibold">
-                                    <i className="bi bi-box-seam me-2 text-primary"></i>
-                                    {editId !== null
-                                        ? "Editar producto"
-                                        : "Nuevo producto"}
-                                </h5>
-                                <button
-                                    className="btn-close"
-                                    onClick={() => setShowModal(false)}
-                                />
-                            </div>
-                            <div className="modal-body">
-                                <div className="row g-3">
-                                    <div className="col-12">
-                                        <label className="form-label fw-semibold small">
-                                            Nombre *
-                                        </label>
-                                        <input
-                                            className="form-control"
-                                            value={form.name}
-                                            onChange={(e) =>
-                                                setForm({
-                                                    ...form,
-                                                    name: e.target.value,
-                                                })
-                                            }
-                                            placeholder="Ej: Laptop Dell Inspiron 15"
-                                        />
-                                    </div>
-                                    <div className="col-6">
-                                        <label className="form-label fw-semibold small">
-                                            SKU *
-                                        </label>
-                                        <input
-                                            className="form-control"
-                                            value={form.sku}
-                                            onChange={(e) =>
-                                                setForm({
-                                                    ...form,
-                                                    sku: e.target.value,
-                                                })
-                                            }
-                                            placeholder="Ej: LAP-DELL-001"
-                                        />
-                                    </div>
-                                    <div className="col-6">
-                                        <label className="form-label fw-semibold small">
-                                            Stock *
-                                        </label>
-                                        <input
-                                            type="number"
-                                            className="form-control"
-                                            value={form.stock}
-                                            onChange={(e) =>
-                                                setForm({
-                                                    ...form,
-                                                    stock: Number(
-                                                        e.target.value,
-                                                    ),
-                                                })
-                                            }
-                                            min={0}
-                                        />
-                                    </div>
-                                    <div className="col-6">
-                                        <label className="form-label fw-semibold small">
-                                            Bodega (ID)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            className="form-control"
-                                            value={form.warehouseId ?? ""}
-                                            onChange={(e) =>
-                                                setForm({
-                                                    ...form,
-                                                    warehouseId: Number(
-                                                        e.target.value,
-                                                    ),
-                                                })
-                                            }
-                                            min={1}
-                                            placeholder="Ej: 2"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="modal-footer">
-                                <button
-                                    className="btn btn-secondary"
-                                    onClick={() => setShowModal(false)}
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    className="btn btn-primary"
-                                    onClick={handleSave}
-                                    disabled={saving || !form.name || !form.sku}
-                                >
-                                    {saving && (
-                                        <span className="spinner-border spinner-border-sm me-2" />
-                                    )}
-                                    {editId !== null
-                                        ? "Guardar cambios"
-                                        : "Crear producto"}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {deleteTarget && (
-                <div
-                    className="modal show d-block"
-                    style={{ background: "rgba(0,0,0,0.4)" }}
-                >
-                    <div className="modal-dialog modal-dialog-centered modal-sm">
-                        <div className="modal-content">
-                            <div className="modal-header border-0">
-                                <h5 className="modal-title fw-semibold text-danger">
-                                    <i className="bi bi-exclamation-triangle me-2"></i>
-                                    Eliminar
-                                </h5>
-                                <button
-                                    className="btn-close"
-                                    onClick={() => setDeleteTarget(null)}
-                                />
-                            </div>
-                            <div className="modal-body pt-0">
-                                ¿Eliminar el producto{" "}
-                                <strong>{deleteTarget.name}</strong>?
-                            </div>
-                            <div className="modal-footer border-0">
-                                <button
-                                    className="btn btn-secondary btn-sm"
-                                    onClick={() => setDeleteTarget(null)}
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    className="btn btn-danger btn-sm"
-                                    onClick={handleDelete}
-                                >
-                                    Eliminar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+  return (
+    <div>
+      <div className="d-flex align-items-center justify-content-between mb-4">
+        <div><h3 className="fw-bold mb-0 text-dark">Productos</h3><p className="text-muted mb-0 small">Catálogo de productos del inventario</p></div>
+        <button className="btn btn-primary" onClick={openCreate}><i className="bi bi-plus-lg me-2"></i>Nuevo producto</button>
+      </div>
+      {error && <div className="alert alert-danger alert-dismissible"><span>{error}</span><button className="btn-close" onClick={() => setError("")}/></div>}
+      <div className="card border-0 shadow-sm mb-3"><div className="card-body py-2">
+        <div className="input-group"><span className="input-group-text bg-white border-end-0"><i className="bi bi-search text-muted"></i></span>
+        <input type="text" className="form-control border-start-0 ps-0" placeholder="Buscar por nombre o SKU..." value={search} onChange={e => setSearch(e.target.value)}/></div>
+      </div></div>
+      <div className="card border-0 shadow-sm">
+        <div className="card-body p-0">
+          {loading ? <div className="text-center py-5"><div className="spinner-border text-primary"/></div>
+          : filtered.length === 0 ? <div className="text-center py-5 text-muted"><i className="bi bi-box-seam fs-1 d-block mb-2"></i>{search ? "Sin resultados" : "No hay productos"}</div>
+          : <div className="table-responsive"><table className="table table-hover mb-0 align-middle">
+              <thead><tr><th>#</th><th>Nombre</th><th>SKU</th><th>Stock</th><th>Bodega</th><th className="text-end">Acciones</th></tr></thead>
+              <tbody>{filtered.map(p => (
+                <tr key={p.id}>
+                  <td className="text-muted small">{p.id}</td>
+                  <td className="fw-semibold">{p.name}</td>
+                  <td><code className="bg-light px-2 py-1 rounded small">{p.sku}</code></td>
+                  <td>{stockBadge(p.stock)}</td>
+                  <td>
+                    {p.inWarehouse
+                      ? <span className="badge bg-secondary-subtle text-secondary rounded-pill"><i className="bi bi-archive me-1"></i>{p.inWarehouse.name ?? `Bodega #${p.inWarehouse.id}`}</span>
+                      : <span className="text-muted small">–</span>}
+                  </td>
+                  <td className="text-end">
+                    <button className="btn btn-sm btn-outline-primary me-2" onClick={() => openEdit(p)}><i className="bi bi-pencil"></i></button>
+                    <button className="btn btn-sm btn-outline-danger" onClick={() => setDeleteTarget(p)}><i className="bi bi-trash"></i></button>
+                  </td>
+                </tr>
+              ))}</tbody>
+            </table></div>}
         </div>
-    );
+        {!loading && filtered.length > 0 && <div className="card-footer bg-white border-top text-muted small py-2 px-3">{filtered.length} producto{filtered.length !== 1 ? "s" : ""}</div>}
+      </div>
+
+      {showModal && <div className="modal show d-block" style={{background:"rgba(0,0,0,0.4)"}}>
+        <div className="modal-dialog modal-dialog-centered"><div className="modal-content">
+          <div className="modal-header"><h5 className="modal-title fw-semibold"><i className="bi bi-box-seam me-2 text-primary"></i>{editId !== null ? "Editar" : "Nuevo"} producto</h5><button className="btn-close" onClick={() => setShowModal(false)}/></div>
+          <div className="modal-body"><div className="row g-3">
+            <div className="col-12"><label className="form-label fw-semibold small">Nombre *</label><input className="form-control" value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="Ej: Laptop Dell Inspiron"/></div>
+            <div className="col-6"><label className="form-label fw-semibold small">SKU *</label><input className="form-control" value={form.sku} onChange={e => setForm({...form, sku: e.target.value})} placeholder="LAP-DELL-001"/></div>
+            <div className="col-6"><label className="form-label fw-semibold small">Stock</label><input type="number" className="form-control" value={form.stock} onChange={e => setForm({...form, stock: Number(e.target.value)})} min={0}/></div>
+            <div className="col-12">
+              <label className="form-label fw-semibold small">Bodega</label>
+              <select className="form-select" value={form.inWarehouse?.id ?? ""} onChange={e => setForm({...form, inWarehouse: e.target.value ? { id: Number(e.target.value) } : undefined})}>
+                <option value="">Sin bodega asignada</option>
+                {warehouses.map(w => <option key={w.id} value={w.id}>{w.name ?? `Bodega #${w.id}`}{w.inBranch ? ` — ${w.inBranch.name ?? "Sucursal #"+w.inBranch.id}` : ""}</option>)}
+              </select>
+              <div className="form-text">Selecciona la bodega donde se almacena este producto</div>
+            </div>
+          </div></div>
+          <div className="modal-footer">
+            <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
+            <button className="btn btn-primary" onClick={handleSave} disabled={saving || !form.name || !form.sku}>{saving && <span className="spinner-border spinner-border-sm me-2"/>}{editId !== null ? "Guardar cambios" : "Crear producto"}</button>
+          </div>
+        </div></div>
+      </div>}
+
+      {deleteTarget && <div className="modal show d-block" style={{background:"rgba(0,0,0,0.4)"}}>
+        <div className="modal-dialog modal-dialog-centered modal-sm"><div className="modal-content">
+          <div className="modal-header border-0"><h5 className="modal-title fw-semibold text-danger"><i className="bi bi-exclamation-triangle me-2"></i>Eliminar</h5><button className="btn-close" onClick={() => setDeleteTarget(null)}/></div>
+          <div className="modal-body pt-0">¿Eliminar <strong>{deleteTarget.name}</strong>?</div>
+          <div className="modal-footer border-0"><button className="btn btn-secondary btn-sm" onClick={() => setDeleteTarget(null)}>Cancelar</button><button className="btn btn-danger btn-sm" onClick={handleDelete}>Eliminar</button></div>
+        </div></div>
+      </div>}
+    </div>
+  );
 }
