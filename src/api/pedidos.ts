@@ -11,6 +11,7 @@ interface ProductQuantity {
 interface OrderCreatePayload {
     customerName: string;
     status: string;
+    createdAt: string;          // requerido por la entidad (nullable = false)
     productList: ProductQuantity[];
 }
 
@@ -81,6 +82,7 @@ export const createOrder = (data: {
     const payload: OrderCreatePayload = {
         customerName: data.customerName,
         status: data.status,
+        createdAt: new Date().toISOString(),   // la entidad lo exige no-null
         productList: data.items.map(i => ({
             productId: i.productId,
             quantity: i.quantity,
