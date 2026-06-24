@@ -125,10 +125,10 @@ describe("api/pedidos", () => {
         const fetchMock = vi.fn().mockResolvedValue({ ok: true });
         vi.stubGlobal("fetch", fetchMock);
 
-        const result = await updateOrderStatus(1, "COMPLETADO");
+        const result = await updateOrderStatus(1, "ENTREGADO");
 
         expect(fetchMock).toHaveBeenCalledWith(
-            `${API}/orders/1/status?status=COMPLETADO`,
+            `${API}/orders/1/status?status=ENTREGADO`,
             { method: "PATCH" },
         );
         expect(result).toBeUndefined();
