@@ -5,8 +5,16 @@ interface StatCard {
     label: string;
     icon: string;
     color: string;
-    endpoint: string;
     key: string;
+}
+
+interface DashboardStats {
+    productos: number;
+    sucursales: number;
+    bodegas: number;
+    ordenes: number;
+    usuarios: number;
+    roles: number;
 }
 
 const stats: StatCard[] = [
@@ -14,71 +22,49 @@ const stats: StatCard[] = [
         label: "Productos",
         icon: "bi-box-seam",
         color: "primary",
-        endpoint: "/products",
         key: "productos",
     },
     {
         label: "Sucursales",
         icon: "bi-building",
         color: "info",
-        endpoint: "/branches",
         key: "sucursales",
     },
     {
         label: "Bodegas",
         icon: "bi-archive",
         color: "secondary",
-        endpoint: "/warehouses",
         key: "bodegas",
     },
     {
         label: "Órdenes",
         icon: "bi-cart-check",
         color: "success",
-        endpoint: "/orders",
         key: "ordenes",
     },
     {
         label: "Usuarios",
         icon: "bi-person-badge",
         color: "warning",
-        endpoint: "/users",
         key: "usuarios",
     },
-    {
-        label: "Roles",
-        icon: "bi-shield-check",
-        color: "danger",
-        endpoint: "/roles",
-        key: "roles",
-    },
+    { label: "Roles", icon: "bi-shield-check", color: "danger", key: "roles" },
 ];
 
+const BFF = API.replace("/api/v1", "/bff/v1");
+
 export default function Home() {
-    const [counts, setCounts] = useState<Record<string, number | string>>({});
+    const [counts, setCounts] = useState<DashboardStats | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetches = stats.map(async (s) => {
-            try {
-                const res = await fetch(`${API}${s.endpoint}`);
-                if (!res.ok) throw new Error();
-                const data = await res.json();
-                return {
-                    key: s.key,
-                    count: Array.isArray(data) ? data.length : "–",
-                };
-            } catch {
-                return { key: s.key, count: "–" };
-            }
-        });
-
-        Promise.all(fetches).then((results) => {
-            const map: Record<string, number | string> = {};
-            results.forEach((r) => (map[r.key] = r.count));
-            setCounts(map);
-            setLoading(false);
-        });
+        fetch(`${BFF}/dashboard`)
+            .then((res) => res.json())
+            .then((data: DashboardStats) => {
+                setCounts(data);
+                setLoading(false);
+            })
+            .catch(() => setLoading(false));
     }, []);
 
     return (
@@ -111,7 +97,9 @@ export default function Home() {
                                     {loading ? (
                                         <span className="spinner-border spinner-border-sm text-secondary" />
                                     ) : (
-                                        counts[s.key]
+                                        (counts?.[
+                                            s.key as keyof DashboardStats
+                                        ] ?? "–")
                                     )}
                                 </div>
                                 <div className="text-muted small mt-1">
@@ -180,24 +168,19 @@ export default function Home() {
                         <div className="card-body p-0">
                             {[
                                 {
-                                    name: "api-inventario",
+                                    name: "/api/v1/products",
                                     endpoint: "/products",
                                     desc: "Productos, sucursales y bodegas",
                                 },
                                 {
-                                    name: "api-pedidos",
+                                    name: "/api/v1/orders",
                                     endpoint: "/orders",
                                     desc: "Gestión de órdenes",
                                 },
                                 {
-                                    name: "api-usuarios",
+                                    name: "/api/v1/users",
                                     endpoint: "/users",
                                     desc: "Usuarios y roles",
-                                },
-                                {
-                                    name: "api-gateway",
-                                    endpoint: "/",
-                                    desc: "Punto de entrada único (proxy)",
                                 },
                             ].map((svc, i, arr) => (
                                 <div
