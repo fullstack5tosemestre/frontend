@@ -26,7 +26,6 @@ export default function App() {
                 <Route path="/pedidos" element={<OrdersPage />} />
                 <Route path="/usuarios" element={<UsersPage />} />
                 <Route path="/roles" element={<RolesPage />} />
-                <Route path="*" element={<Home />} />
             </Route>
         </Routes>
     );
